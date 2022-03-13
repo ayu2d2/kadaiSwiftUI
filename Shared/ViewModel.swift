@@ -6,15 +6,23 @@
 //
 
 import SwiftUI
-
-struct ViewModel: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
-}
-
-struct ViewModel_Previews: PreviewProvider {
-    static var previews: some View {
-        ViewModel()
+import Combine
+import Alamofire
+final class ViewModel :
+    ObservableObject {
+    @Published var query : String = ""
+    @Published private(set) var response: Response = Response(items: [])
+    var tokens = [AnyCancellable]()
+    private let service = GithubService()
+    
+    init() {
+        $query
+            .debounce(for: 0.5, scheduler: RunLoop.main)
+            .flatMap { query in
+                self.service.search(matching: query)
+                    .replaceError(with: Response(items: []))
+            }
+            .receive(on: RunLoop.main)
+            .assign(to: &$response)
     }
 }
